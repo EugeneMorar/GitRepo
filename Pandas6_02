@@ -5,85 +5,126 @@ from pygame.draw import *
 pg.init()
 
 FPS = 30
-screen = pg.display.set_mode((800, 600))
+screen = pg.display.set_mode((800,   600))
 
-screen.fill((255, 175, 128))
+tree_color = (0, 200, 64)
+screen_color = (255, 175, 128)
+WHITE = (0, 0, 0)
+BLACK = (255, 255, 255)
 
+screen.fill(screen_color)
 
-def log(x, y, k):
+def log(x, y, scale_fact):
     surface_log = pg.Surface((800, 600))
+    
+    surface_log.set_colorkey(WHITE)
 
-    surface_log.set_colorkey((0, 0, 0))
-
-    rect(screen, (0, 200, 64), (x, y, 16 * k, 50 * k))
-    rect(surface_log, (0, 200, 64), (x, y - 55 * k, 16 * k, 50 * k))
-    rect(surface_log, (0, 200, 64), (x + 2 * k, y - 80 * k, 10 * k, 20 * k))
-    rect(surface_log, (0, 200, 64), (x + 4 * k, y - 95 * k, 8 * k, 10 * k))
+    rect(screen, tree_color,
+         (x, y, 16*scale_fact, 50*scale_fact))
+    rect(surface_log, tree_color,
+         (x, y - 55*scale_fact, 16*scale_fact, 50*scale_fact))
+    rect(surface_log, tree_color,
+         (x + 2*scale_fact, y - 80*scale_fact, 10*scale_fact, 20*scale_fact))
+    rect(surface_log, tree_color,
+         (x + 4*scale_fact, y - 95*scale_fact, 8*scale_fact, 10*scale_fact))
 
     screen.blit(surface_log, (0, 0))
 
 
-def leaves(x, y, k):
-    surface_leaves_right = pg.Surface((800, 600))
-    surface_leaves_left = pg.Surface((800, 600))
+def leaves(x, y, scale_fact):
+    surface_leaves_R = pg.Surface((800, 600))
+    surface_leaves_L = pg.Surface((800, 600))
 
-    surface_leaves_left.set_colorkey((0, 0, 0))
-    surface_leaves_right.set_colorkey((0, 0, 0))
+    surface_leaves_L.set_colorkey(WHITE)
+    surface_leaves_R.set_colorkey(WHITE)
 
-    arc(surface_leaves_right, (0, 200, 64), (x + 20 * k, y - 40 * k, 60 * k, 50 * k), 0, np.pi, 2)
-    arc(surface_leaves_right, (0, 200, 64), (x + 20 * k, y - 80 * k, 40 * k, 25 * k), 0, np.pi, 2)
+    arc(surface_leaves_R, tree_color,
+    (x + 20*scale_fact, y - 40*scale_fact, 60*scale_fact, 50*scale_fact),
+                    0, np.pi, 2)
+    arc(surface_leaves_R, tree_color,
+    (x + 20*scale_fact, y - 80*scale_fact, 40*scale_fact, 25*scale_fact),
+                    0, np.pi, 2)
 
-    arc(surface_leaves_left, (0, 200, 64), (x - 65 * k, y - 40 * k, 60 * k, 50 * k), 0, np.pi, 2)
-    arc(surface_leaves_left, (0, 200, 64), (x - 45 * k, y - 80 * k, 40 * k, 25 * k), 0, np.pi, 2)
+    arc(surface_leaves_L, tree_color,
+    (x - 65*scale_fact, y - 40*scale_fact, 60*scale_fact, 50*scale_fact),
+                    0, np.pi, 2)
+    arc(surface_leaves_L, tree_color,
+    (x - 45*scale_fact, y - 80*scale_fact, 40*scale_fact, 25*scale_fact),
+                    0, np.pi, 2)
 
-    ellipse(surface_leaves_right, (0, 200, 64), [x + 40 * k, y - 35 * k, 10 * k, 30 * k])
-    ellipse(surface_leaves_right, (0, 200, 64), [x + 50 * k, y - 35 * k, 8 * k, 25 * k])
-    ellipse(surface_leaves_right, (0, 200, 64), [x + 62 * k, y - 32 * k, 6 * k, 20 * k])
-    ellipse(surface_leaves_right, (0, 200, 64), [x + 30 * k, y - 33 * k, 8 * k, 25 * k])
+    ellipse(surface_leaves_R, tree_color,
+       [x + 40*scale_fact, y - 35*scale_fact, 10*scale_fact, 30*scale_fact])
+    ellipse(surface_leaves_R, tree_color,
+       [x + 50*scale_fact, y - 35*scale_fact, 8*scale_fact, 25*scale_fact])
+    ellipse(surface_leaves_R, tree_color,
+       [x + 62*scale_fact, y - 32*scale_fact, 6*scale_fact, 20*scale_fact])
+    ellipse(surface_leaves_R, tree_color,
+       [x + 30*scale_fact, y - 33*scale_fact, 8*scale_fact, 25*scale_fact])
 
-    ellipse(surface_leaves_left, (0, 200, 64), [x - 24 * k, y - 35 * k, 10 * k, 30 * k])
-    ellipse(surface_leaves_left, (0, 200, 64), [x - 50 * k, y - 35 * k, 8 * k, 25 * k])
-    ellipse(surface_leaves_left, (0, 200, 64), [x - 58 * k, y - 32 * k, 6 * k, 20 * k])
-    ellipse(surface_leaves_left, (0, 200, 64), [x - 36 * k, y - 33 * k, 8 * k, 25 * k])
+    ellipse(surface_leaves_L, tree_color,
+       [x - 24*scale_fact, y - 35*scale_fact, 10*scale_fact, 30*scale_fact])
+    ellipse(surface_leaves_L, tree_color,
+       [x - 50*scale_fact, y - 35*scale_fact, 8*scale_fact, 25*scale_fact])
+    ellipse(surface_leaves_L, tree_color,
+       [x - 58*scale_fact, y - 32*scale_fact, 6*scale_fact, 20*scale_fact])
+    ellipse(surface_leaves_L, tree_color,
+       [x - 36*scale_fact, y - 33*scale_fact, 8*scale_fact, 25*scale_fact])
 
-    ellipse(surface_leaves_right, (0, 200, 64), [x + 36 * k, y - 77 * k, 8 * k, 20 * k])
-    ellipse(surface_leaves_right, (0, 200, 64), [x + 50 * k, y - 75 * k, 6 * k, 15 * k])
-    ellipse(surface_leaves_right, (0, 200, 64), [x + 26 * k, y - 73 * k, 5 * k, 15 * k])
+    ellipse(surface_leaves_R, tree_color,
+       [x + 36*scale_fact, y - 77*scale_fact, 8*scale_fact, 20*scale_fact])
+    ellipse(surface_leaves_R, tree_color,
+       [x + 50*scale_fact, y - 75*scale_fact, 6*scale_fact, 15*scale_fact])
+    ellipse(surface_leaves_R, tree_color,
+       [x + 26*scale_fact, y - 73*scale_fact, 5*scale_fact, 15*scale_fact])
 
-    ellipse(surface_leaves_left, (0, 200, 64), [x - 36 * k, y - 77 * k, 8 * k, 20 * k])
-    ellipse(surface_leaves_left, (0, 200, 64), [x - 20 * k, y - 75 * k, 6 * k, 15 * k])
-    ellipse(surface_leaves_left, (0, 200, 64), [x - 26 * k, y - 77 * k, 5 * k, 15 * k])
+    ellipse(surface_leaves_L, tree_color,
+       [x - 36*scale_fact, y - 77*scale_fact, 8*scale_fact, 20*scale_fact])
+    ellipse(surface_leaves_L, tree_color,
+       [x - 20*scale_fact, y - 75*scale_fact, 6*scale_fact, 15*scale_fact])
+    ellipse(surface_leaves_L, tree_color,
+       [x - 26*scale_fact, y - 77*scale_fact, 5*scale_fact, 15*scale_fact])
 
-    screen.blit(surface_leaves_left, (0, 0))
-    screen.blit(surface_leaves_right, (0, 0))
-
-
-def panda(x, y, k):
-    circle(screen, (0, 0, 0), (x + 24 * k, y - 35 * k), k * 18)
-    circle(screen, (0, 0, 0), (x - 28 * k, y - 33 * k), k * 20)
-
-    rect(screen, (0, 0, 0), (x - 14 * k, y, 18 * k, 56 * k))
-
-    ellipse(screen, (255, 255, 255), [x, y, 100 * k, 60 * k])
-
-    rect(screen, (0, 0, 0), (x + 12 * k, y, 18 * k, 70 * k))
-
-    circle(screen, (255, 255, 255), (x, y), k * 43)
-
-    rect(screen, (0, 0, 0), (x - 12 * k, y + 60 * k, 42 * k, 18 * k))
-
-    ellipse(screen, (0, 0, 0), [x + 80 * k, y + 30 * k, 18 * k, 49 * k])
-
-    circle(screen, (0, 0, 0), (x - 34 * k, y + 10 * k), k * 11)
-    circle(screen, (0, 0, 0), (x, y + 13 * k), k * 11)
-    circle(screen, (0, 0, 0), (x - 20 * k, y + 32 * k), k * 7)
+    screen.blit(surface_leaves_L, (0, 0))
+    screen.blit(surface_leaves_R, (0, 0))
 
 
-def palm(x, y, k):
-    log(x, y, k)
+def panda(x, y, scale_fact):
 
-    leaves(x, y, k)
+    circle(screen, WHITE,
+       (x + 24*scale_fact, y - 35*scale_fact), scale_fact*18)
+    circle(screen, WHITE,
+       (x - 28*scale_fact, y - 33*scale_fact), scale_fact*20)
 
+    rect(screen, WHITE,
+       (x - 14*scale_fact, y, 18*scale_fact, 56*scale_fact))
+
+    ellipse(screen, BLACK,
+       [x, y, 100*scale_fact, 60*scale_fact])
+
+    rect(screen, WHITE,
+       (x + 12*scale_fact, y, 18*scale_fact, 70*scale_fact))
+
+    circle(screen, BLACK,
+       (x, y), scale_fact*43)
+
+    rect(screen, WHITE,
+       (x - 12*scale_fact, y + 60*scale_fact, 42*scale_fact, 18*scale_fact))
+
+    ellipse(screen, WHITE,
+       [x + 80*scale_fact, y + 30*scale_fact, 18*scale_fact, 49*scale_fact])
+
+    circle(screen, WHITE,
+       (x - 34*scale_fact, y + 10*scale_fact), scale_fact*11)
+    circle(screen, WHITE,
+       (x, y + 13*scale_fact), scale_fact*11)
+    circle(screen, WHITE,
+       (x - 20*scale_fact, y + 32*scale_fact), scale_fact*7)
+
+
+def palm(x, y, scale_fact):
+    log(x, y, scale_fact)
+    
+    leaves(x, y, scale_fact)
 
 palm(200, 300, 3)
 palm(50, 400, 1)
