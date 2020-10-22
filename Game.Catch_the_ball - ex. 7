@@ -274,9 +274,9 @@ class LeaderBoard:
     def leaderboard_reader(self):
         with open('Leaderboard.txt') as file:
             for line in file.readlines():
-                line.split()
+                line = str(line.split())
                 self.NAME.append(line[1])
-                self.SCORE.append(int(line[3]))
+                self.SCORE.append(int(line[2]))
             self.number_of_scores = len(self.SCORE)
 
     def leaderboard_update(self, username):
@@ -290,6 +290,10 @@ class LeaderBoard:
             self.NAME.append(username)
             self.SCORE.append(c.counter)
 
+            with open('Leaderboard.txt', 'a') as file:
+                file.write(str(self.number_of_scores + 1) + '. ' + str(mm.username) + ' - ' + str(c.counter))
+
+
     def leaderboard_sort(self):
         for i in range(self.number_of_scores):
             self.sorted = True
@@ -300,6 +304,9 @@ class LeaderBoard:
                     self.sorted = False
                 if self.sorted:
                     break
+        with open('Leaderboard.txt', 'w') as file:
+            for i in range(self.number_of_scores):
+                file.write(str(i+1) + '. ' + str(self.NAME[i]) + ' - ' + str(self.SCORE[i]))  #FIX ME
 
 lb = LeaderBoard()
 
