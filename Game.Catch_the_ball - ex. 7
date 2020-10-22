@@ -1,0 +1,327 @@
+import pygame as pg
+import numpy as math
+from pygame.draw import *
+from random import randint
+from random import choice
+
+pg.init()
+pg.font.init()
+
+
+class Variables:
+    def __init__(self):
+        self.timer = 0
+        self.number_of_stars = 3
+        self.number_of_balls = 10
+
+        self.FPS = 50
+
+        self.RED = (255, 0, 0, 255)
+        self.BLUE = (0, 0, 255, 255)
+        self.YELLOW = (255, 255, 0, 255)
+        self.GREEN = (0, 255, 0, 255)
+        self.MAGENTA = (255, 0, 255, 255)
+        self.CYAN = (0, 255, 255, 255)
+        self.BLACK = (0, 0, 0, 255)
+        self.WHITE = (255, 255, 255, 255)
+        self.BROWN = (210, 105, 30, 255)
+
+        self.COLORS = [self.RED, self.BLUE, self.YELLOW, self.GREEN, self.MAGENTA, self.CYAN]
+
+
+var = Variables()
+
+
+class InputBox:
+    def __init__(self, x, y, w, h, text=''):
+        self.name_recorded = False
+        self.name = ''
+        self.text = text
+        self.rect = pg.Rect(x, y, w, h)
+        self.color = var.WHITE
+        self.txt_surface = mm.myfont.render(text, True, self.color)
+        self.active = False
+
+    def handle_event(self, event):
+        if event.type == pg.MOUSEBUTTONDOWN:
+            # If the user clicked on the input_box rect.
+            if self.rect.collidepoint(event.pos[0], event.pos[1]):
+                # Toggle the active variable.
+                self.active = not self.active
+            else:
+                self.active = False
+            # Change the current color of the input box.
+            self.color = var.CYAN if self.active else var.WHITE
+        if event.type == pg.KEYDOWN:
+            if self.active:
+                if event.key == pg.K_RETURN:
+                    self.name = self.text
+                    self.name_recorded = True
+                elif event.key == pg.K_BACKSPACE:
+                    self.text = self.text[:-1]
+                else:
+                    self.text += event.unicode
+                # Re-render the text.
+                self.txt_surface = mm.myfont.render(self.text, True, self.color)
+
+    def update(self):
+        # Resize the box if the text is too long.
+        width = max(200, self.txt_surface.get_width() + 10)
+        self.rect.w = width
+
+    def draw(self, screen):
+        # Blit the text.
+        screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+        # Blit the rect.
+        pg.draw.rect(screen, self.color, self.rect, 2)
+
+
+class MainMenu:
+    def __init__(self):
+        self.username = ''
+        self.screen_width = 1200
+        self.screen_height = 900
+        self.screen = pg.display.set_mode((self.screen_width, self.screen_height))
+        self.myfont = pg.font.SysFont('Comic Sans MS', 50)
+        self.text1 = self.myfont.render("Welcome to [GAME NAME]", False, var.CYAN)
+        self.text2 = self.myfont.render("Please, enter your name:", False, var.CYAN)
+
+    def draw_main_menu(self, x, y, w, h):
+        input_box = InputBox(x, y, w, h)
+        done = False
+        while not done:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    done = True
+                input_box.handle_event(event)
+                if input_box.name_recorded:
+                    done = True
+                    self.username = input_box.name
+                input_box.update()
+            self.screen.fill((30, 30, 30))
+            input_box.draw(self.screen)
+
+            pg.draw.rect(self.screen, var.BROWN, (390, 390, 460, 55))
+            pg.draw.rect(self.screen, var.BROWN, (390, 490, 460, 55))
+            self.screen.blit(self.text1, (400, 400))
+            self.screen.blit(self.text2, (415, 500))
+
+            pg.display.flip()
+            pg.time.Clock().tick(30)
+
+
+mm = MainMenu()
+
+
+class BaseTarget:
+    def __init__(self):
+        self.vx = choice([-1, 1]) * randint(1, 5)  # Speed of the target in the x direction
+        self.vy = choice([-1, 1]) * randint(1, 5)  # Speed of the target in the y direction
+        self.x = randint(100, 1100)  # Initial x coordinate of the target
+        self.y = randint(100, 900)  # Initial y coordinate of the target
+        self.color = var.COLORS[randint(0, 5)]  # The colour of the target
+
+
+class Ball(BaseTarget):
+    """
+    Class, which defines Ball as an object.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.r = randint(20, 100)  # The radius of the target
+
+        circle(mm.screen, self.color, (self.x, self.y), self.r)
+
+    def draw_ball(self):
+        circle(mm.screen, self.color, (self.x, self.y), self.r)
+
+    def motion_ball(self):
+        self.x, self.y = self.x + self.vx, self.y + self.vy
+        circle(mm.screen, self.color, (self.x, self.y), self.r)
+
+        if mm.screen_width - self.x <= self.r or self.x <= self.r:
+            self.vx = -self.vx
+        if mm.screen_height - self.y <= self.r or self.y < self.r:
+            self.vy = -self.vy
+
+    def catch_the_ball(self, event):
+        """
+        Method, registering the catching of the ball.
+        :param event: берёт событие MOUSEBUTTONDOWN
+        :return: bool
+        """
+        x, y = event.pos
+        if (self.x - x) ** 2 + (self.y - y) ** 2 <= self.r ** 2:
+            return True
+        else:
+            return False
+
+
+class Star(BaseTarget):
+    """
+    Class that defines Star as an object:
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.r = 100
+        self.color = var.COLORS[3]
+
+    def draw_star(self):
+        point_list = []
+        num_points = 8
+        for i in range(num_points * 2):
+            self.r = 100
+            if i % 2 == 0:
+                self.r = self.r // 2
+            ang = i * math.pi / num_points + var.timer * math.pi / 20
+            x = self.x + int(math.cos(ang) * self.r)
+            y = self.y + int(math.sin(ang) * self.r)
+            point_list.append((x, y))
+
+        pg.draw.polygon(mm.screen, self.color, point_list)
+        pg.draw.circle(mm.screen, var.RED, (self.x, self.y), self.r // 2)
+
+    def reflection_star(self):
+        if self.x > mm.screen_width or self.x < 0:
+            self.vx = -self.vx
+        if self.y > mm.screen_height or self.y < 0:
+            self.vy = -self.vy
+
+    def motion_star(self, timer):
+        self.x, self.y = self.x + self.vx, self.y + self.vy
+        if timer % 30 == 0:
+            self.vx = choice([-1, 1]) * randint(4, 10)  # Speed of the ball in the x direction
+            self.vy = choice([-1, 1]) * randint(4, 10)  # Speed of the ball in the y direction
+
+    def catch_the_star(self, event):
+        """
+        Method, registering the catching of the star.
+        :param event: берёт событие MOUSEBUTTONDOWN
+        :return: bool
+        """
+        x, y = event.pos
+        if (self.x - x) ** 2 + (self.y - y) ** 2 <= (self.r // 2) ** 2:
+            return True
+        else:
+            return False
+
+
+star_pool = [Star() for i in range(var.number_of_stars)]
+ball_pool = [Ball() for k in range(var.number_of_balls)]
+
+
+class GameHandler:
+    def __init__(self):
+        self.timer = 0
+        self.clock = pg.time.Clock()
+        self.finished = False
+
+    def motion_processor(self):
+        for star in star_pool:
+            star.draw_star()
+            star.reflection_star()
+            star.motion_star(var.timer)
+        for ball in ball_pool:
+            ball.draw_ball()
+            ball.motion_ball()
+
+    def target_creator(self):
+        if len(ball_pool) < var.number_of_balls:
+            ball_pool.append(Ball())
+        if len(star_pool) < var.number_of_stars:
+            star_pool.append(Star())
+
+
+gh = GameHandler()
+
+
+class Counter:
+    def __init__(self):
+        self.counter = 0
+        self.counter_surface = mm.myfont.render(str(self.counter), False, (0, 0, 255))
+
+    def count_updater(self):
+        self.counter_surface = mm.myfont.render(str(self.counter), False, (0, 0, 255))
+        mm.screen.blit(self.counter_surface, (100, 100))
+
+    def main_loop_event_checker(self, event):
+        if event.type == pg.QUIT:
+            gh.finished = True
+        elif event.type == pg.MOUSEBUTTONDOWN:
+            for i, star in enumerate(star_pool):
+                if star.catch_the_star(event):
+                    self.counter += 10
+                    star_pool.pop(i)
+            for i, ball in enumerate(ball_pool):
+                if ball.catch_the_ball(event):
+                    self.counter += 1
+                    ball_pool.pop(i)
+
+
+c = Counter()
+
+
+class LeaderBoard:
+    def __init__(self):
+        self.sorted = ''
+        self.updated = ''
+        self.NAME = []
+        self.SCORE = []
+        self.number_of_scores = 0
+
+    def leaderboard_reader(self):
+        with open('Leaderboard.txt') as file:
+            for line in file.readlines():
+                line.split()
+                self.NAME.append(line[1])
+                self.SCORE.append(int(line[3]))
+            self.number_of_scores = len(self.SCORE)
+
+    def leaderboard_update(self, username):
+        self.updated = False
+        for i, name in enumerate(self.NAME):
+            if name == username:
+                self.SCORE[i] = c.counter
+                self.updated = True
+                break
+        if not self.updated:
+            self.NAME.append(username)
+            self.SCORE.append(c.counter)
+
+    def leaderboard_sort(self):
+        for i in range(self.number_of_scores):
+            self.sorted = True
+            for k in range(self.number_of_scores - i - 1):
+                if self.SCORE[k] > self.SCORE[k + 1]:
+                    self.SCORE[k], self.SCORE[k + 1] = self.SCORE[k + 1], self.SCORE[k]
+                    self.NAME[k], self.NAME[k + 1] = self.NAME[k + 1], self.NAME[k]
+                    self.sorted = False
+                if self.sorted:
+                    break
+
+lb = LeaderBoard()
+
+
+mm.draw_main_menu(500, 600, 500, 50)
+pg.display.update()
+
+while not gh.finished:
+    gh.target_creator()
+    gh.motion_processor()
+    c.count_updater()
+    var.timer += 1
+    pg.display.update()
+    gh.clock.tick(var.FPS)
+    for event in pg.event.get():
+        c.main_loop_event_checker(event)
+    mm.screen.fill(var.BLACK)
+
+lb.leaderboard_reader()
+lb.leaderboard_update(mm.username)
+lb.leaderboard_sort()
+
+pg.quit()
+
+
