@@ -111,7 +111,7 @@ class MainMenu:
         self.screen = pg.display.set_mode((self.screen_width, self.screen_height))
         self.myfont = pg.font.SysFont('Comic Sans MS', 50)
         self.endgamefont = pg.font.SysFont('Comic Sans MS', 100)
-        self.text1 = self.myfont.render("Welcome to BALLBREAKER]", True, var.CYAN)
+        self.text1 = self.myfont.render("Welcome to BALLBREAKER", True, var.CYAN)
         self.text2 = self.myfont.render("Please, enter your name:", True, var.CYAN)
         self.text3 = self.myfont.render("Leaderboard", True, var.CYAN)
 
