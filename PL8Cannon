@@ -1,200 +1,202 @@
-from random import randrange as rnd, choice
 import pygame as pg
-import math
-import time
+import numpy as np
+from random import randint
 
-# print (dir(math))
+SCREEN_SIZE = (800, 600)
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
 
 pg.init()
 pg.font.init()
 
-white = (255, 255, 255, 255)
-black = (0, 0, 0, 255)
-red = (255, 0, 0, 255)
 
-myfont = pg.font.SysFont('Comic Sans MS', 30)
-screen_width = 1200
-screen_height = 900
-screen = pg.display.set_mode((screen_width, screen_height))
-screen.fill(white)
-grav = 10
-pg.display.update()
+class Ball():
+    def __init__(self, coord, vel, rad=15, color=None):
+        if color == None:
+            color = (randint(0, 255), randint(0, 255), randint(0, 255))
+        self.color = color
+        self.coord = coord
+        self.vel = vel
+        self.rad = rad
+        self.is_alive = True
 
-class Projectile:
-    def __init__(self):
-        pass
+    def draw(self, screen):
+        pg.draw.circle(screen, self.color, self.coord, self.rad)
+
+    def move(self, t_step=1., g=2.):
+        self.vel[1] += int(g * t_step)
+        for i in range(2):
+            self.coord[i] += int(self.vel[i] * t_step)
+        self.check_walls()
+        if self.vel[0] ** 2 + self.vel[1] ** 2 < 2 ** 2 and self.coord[1] > SCREEN_SIZE[1] - 2 * self.rad:
+            self.is_alive = False
+
+    def check_walls(self):
+        n = [[1, 0], [0, 1]]
+        for i in range(2):
+            if self.coord[i] < self.rad:
+                self.coord[i] = self.rad
+                self.flip_vel(n[i], 0.8, 0.9)
+            elif self.coord[i] > SCREEN_SIZE[i] - self.rad:
+                self.coord[i] = SCREEN_SIZE[i] - self.rad
+                self.flip_vel(n[i], 0.8, 0.9)
+
+    def flip_vel(self, axis, coef_norm=1, coef_par=1):
+        vel = np.array(self.vel)
+        n = np.array(axis)
+        n = n / np.linalg.norm(n)
+        vel_norm = vel.dot(n) * n
+        vel_par = vel - vel_norm
+        ans = -vel_norm * coef_norm + vel_par * coef_par
+        self.vel = ans.astype(np.int).tolist()
 
 
-class Shell:
-    def __init__(self):
-        """ Конструктор класса Shell
-
-        Args:
-        x - начальное положение мяча по горизонтали
-        y - начальное положение мяча по вертикали
-        """
-        self.x = 40
-        self.y = 450
-        self.r = 10
-        self.vx = 0
-        self.vy = 0
-        self.color = choice(['blue', 'green', 'red', 'brown'])
-        self.live = 30
-
-    def move(self):
-        """Переместить мяч по прошествии единицы времени.
-
-        Метод описывает перемещение мяча за один кадр перерисовки. То есть, обновляет значения
-        self.x и self.y с учетом скоростей self.vx и self.vy, силы гравитации, действующей на мяч,
-        и стен по краям окна (размер окна 800х600).
-        """
-        self.x += self.vx
-        self.y += self.vy - grav/2
-
-    def hit_test(self, obj):
-        """Функция проверяет сталкивалкивается ли данный обьект с целью, описываемой в обьекте obj.
-
-        Args:
-            obj: Обьект, с которым проверяется столкновение.
-        Returns:
-            Возвращает True в случае столкновения мяча и цели. В противном случае возвращает False.
-        """
-        if (self.x - obj.x)**2 + (self.y - obj.y)**2 <= self.r ** 2:
-            return True
-        else:
-            return False
+class Table:
+    pass
 
 
 class Gun:
-    def __init__(self, x, y):
-        self.f2_power = 10
-        self.f2_on = 0
-        self.an = 1
-        self.id = pg.Rect(x, y, 50, 420)  # FIXME: don't know how to set it...
+    def __init__(self, coord=[30, SCREEN_SIZE[1] // 2],
+                 min_pow=20, max_pow=50):
+        self.coord = coord
+        self.angle = 0
+        self.min_pow = min_pow
+        self.max_pow = max_pow
+        self.power = min_pow
+        self.active = False
 
-    def fire2_start(self, event):
-        self.f2_on = 1
+    def draw(self, screen):
+        end_pos = [self.coord[0] + int(self.power * np.cos(self.angle)),
+                   self.coord[1] + int(self.power * np.sin(self.angle))]
+        pg.draw.line(screen, RED, self.coord, end_pos, 5)
 
-    def fire2_end(self, event):
-        """Выстрел мячом.
+    def strike(self):
+        vel = [int(self.power * np.cos(self.angle)), int(self.power * np.sin(self.angle))]
+        self.active = False
+        self.power = self.min_pow
+        return Ball(list(self.coord), vel)
 
-        Происходит при отпускании кнопки мыши.
-        Начальные значения компонент скорости мяча vx и vy зависят от положения мыши.
-        """
-        global shells, bullet
-        bullet += 1
-        new_shell = Shell()
-        new_shell.r += 5
-        self.an = math.atan((event.pos[1] - new_shell.y) / (event.pos[0] - new_shell.x))
-        new_shell.vx = self.f2_power * math.cos(self.an)
-        new_shell.vy = - self.f2_power * math.sin(self.an)
-        shells += [new_shell]
-        self.f2_on = 0
-        self.f2_power = 10
+    def move(self):
+        if self.active and self.power < self.max_pow:
+            self.power += 1
 
-    def targetting(self, event=0):
-        """Прицеливание. Зависит от положения мыши."""
-        if event:
-            self.an = math.atan((event.pos[0] - 450) / (event.pos[1] - 20))
-        if self.f2_on:
-            pg.draw.rect(screen, 'orange', self.id, 7)
-        else:
-            pg.draw.rect(screen, black, self.id, 7)
-        self.id = pg.Rect(20, 450, 20 + max(self.f2_power, 20) * int(math.cos(self.an)), 450 + max(self.f2_power, 20) * int(math.sin(self.an)))
-
-    def power_up(self):
-        if self.f2_on:
-            if self.f2_power < 100:
-                self.f2_power += 1
-            pg.draw.rect(screen,'orange', self.id)
-        else:
-            pg.draw.rect(screen, black, self.id)
+    def set_angle(self, mouse_pos):
+        self.angle = np.arctan2(mouse_pos[1] - self.coord[1],
+                                mouse_pos[0] - self.coord[0])
 
 
 class Target:
     def __init__(self):
         self.points = 0
-        self.live = 1
-        # FIXME: don't work!!! How to call this functions when object is created?
-        self.new_target()
+        self.is_alive = 1
+        self.x = randint(600, 780)
+        self.y = randint(300, 550)
+        self.r = randint(10, 30)
+        self.color = RED
 
-    def new_target(self):
-        """ Инициализация новой цели. """
-        self.x = rnd(600, 780)
-        self.y = rnd(300, 550)
-        self.r = rnd(2, 50)
-        self.color = red
+    def draw(self):
         pg.draw.circle(screen, self.color, (self.x, self.y), self.r)
-        pg.display.update()
 
-    def hit(self, obj, points=1):
+    def is_hit(self, obj, points=1):
         """
         Попадание шарика в цель.
         """
-
-        if (self.x - obj.x)**2 + (self.y - obj.y)**2 <= (2*self.r) ** 2:
+        if (self.x - obj.coord[0]) ** 2 + (self.y - obj.coord[1]) ** 2 <= (2 * self.r) ** 2:
             self.points += points
             return True
         else:
             return False
 
 
-t1 = Target()
+class Manager:
+    def __init__(self):
+        self.number_of_targets = 1
+        self.gun = Gun()
+        self.table = Table()
+        self.balls = []
+        self.targets = [Target() for i in range(self.number_of_targets)]
+        self.dead_balls = []
+
+    def end_round_card(self):
+        screen.fill(BLACK)
+        text_surface = myfont.render('Вы уничтожили цель за ' + str(len(self.dead_balls)) + ' выстрелов', True, WHITE)
+        screen.blit(text_surface, (400, 300))
+        pg.display.flip()
+
+    def process(self, events, screen):
+        done = self.handle_events(events)
+        self.move()
+        self.draw(screen)
+        self.check_alive()
+        return done
+
+    def draw(self, screen):
+        screen.fill(BLACK)
+        for ball in self.balls:
+            ball.draw(screen)
+        self.gun.draw(screen)
+        for target in self.targets:
+            target.draw()
+
+    def move(self):
+        for ball in self.balls:
+            ball.move()
+        self.gun.move()
+
+    def check_alive(self):
+        for i, ball in enumerate(self.balls):
+            if not ball.is_alive:
+                self.dead_balls.append(i)
+                self.balls.pop(i)
+
+        for i, target in enumerate(self.targets):
+            if not target.is_alive:
+                self.targets.pop(i)
+            for ball in self.balls:
+                if target.is_hit(ball):
+                    target.is_alive = False
+
+    def handle_events(self, events):
+        done = False
+        for event in events:
+            if event.type == pg.QUIT:
+                done = True
+            elif event.type == pg.KEYDOWN:
+                if event.key == pg.K_UP:
+                    self.gun.coord[1] -= 5
+                elif event.key == pg.K_DOWN:
+                    self.gun.coord[1] += 5
+            elif event.type == pg.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    self.gun.active = True
+            elif event.type == pg.MOUSEBUTTONUP:
+                if event.button == 1:
+                    self.balls.append(self.gun.strike())
+
+        if pg.mouse.get_focused():
+            mouse_pos = pg.mouse.get_pos()
+            self.gun.set_angle(mouse_pos)
+
+        if len(self.targets) == 0:
+            done = True
+        return done
 
 
-bullet = 0
-shells = []
+screen = pg.display.set_mode(SCREEN_SIZE)
+pg.display.set_caption("The gun")
+clock = pg.time.Clock()
+myfont = pg.font.SysFont('Comic Sans MS', 30)
 
-class Game:
-    def gun_placement(self):
-        gun_placed = False
-        while not gun_placed:
-            for event in pg.event.get():
-                if event.type == pg.MOUSEBUTTONDOWN:
-                    self.gun = Gun(event.pos[0], event.pos[1])
-                    gun_placed = True
-    def new_game(self):
-        global t1, shells, bullet
-        game_is_on = True
-        self.gun_placement()
-        t1.new_target()
-        bullet = 0
-        shells = []
-        game_paused = False
-        pg.display.update()
-        while game_is_on:
-            for event in pg.event.get():
-                if event.type == pg.MOUSEBUTTONDOWN and not game_paused:
-                    self.gun.fire2_start(event)
-                if event.type == pg.MOUSEBUTTONUP and not game_paused:
-                    self.gun.fire2_end(event)
-                # Add mouse movement changing the angle Trial 1
-                if event.type == pg.MOUSEMOTION:
-                    self.gun.targetting(event)
-                if event.type == pg.QUIT:
-                    pg.quit()
-                t1.live = 1
-                while t1.live or shells:
-                    for b in shells:
-                        b.move()
-                        if b.hit_test(t1) or t1.live:
-                            t1.live = 0
-                            t1.hit(obj=b)
-                            game_paused = True
-                            text_surface = myfont.render(
-                                'Вы уничтожили цель за ' + str(bullet) + ' выстрелов', True, black)
-                            screen.blit(text_surface, (400, 300))
-                            game_is_on = False
-                    pg.display.update()
-                    time.sleep(0.03)
-                    self.gun.targetting()
-                    self.gun.power_up()
-        screen.fill(white)
-        pg.time.Clock().tick(750)
-        self.new_game()
+def round():
+    mgr = Manager()
+    done = False
+    while not done:
+        done = mgr.process(pg.event.get(), screen)
+        pg.display.flip()
+        clock.tick(15)
+    mgr.end_round_card()
+    clock.tick(0.2)
+    round()
 
-
-game = Game()
-
-game.new_game()
-
+round()
