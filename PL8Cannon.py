@@ -1,6 +1,7 @@
 import pygame as pg
 import sys
 import numpy as np
+import yaml
 from random import randint
 
 SCREEN_SIZE = (800, 600)
@@ -10,6 +11,74 @@ RED = (255, 0, 0)
 
 pg.init()
 pg.font.init()
+
+
+class MainMenu:
+    def __init__(self):
+        self.screen = pg.display.set_mode(SCREEN_SIZE)
+        self.text: pg.Surface
+        self.text_rect: pg.Rect
+        self.leaderboard = LeaderBoard(self.screen)
+        self.manager = Manager(self.screen)
+        self.font = pg.font.SysFont('ariel', 40)
+        self.margin = 5
+
+    def button_with_text(self, text, x, y, event):
+        self.text = self.font.render(text, True, (171, 215, 235))
+        self.text_rect = pg.Rect((x - self.text.get_width() // 2 - self.margin,
+                                  y - self.text.get_height() // 2 - self.margin),
+                                 (self.text.get_width() + 2 * self.margin,
+                                  self.text.get_height() + 2 * self.margin))
+        self.screen.blit(self.text, (x - self.text.get_width() // 2 ,
+                                     y - self.text.get_height() // 2))
+        pg.draw.rect(self.screen, (152, 251, 152), self.text_rect)
+        if event.type == pg.MOUSEBUTTONDOWN and self.text_rect.collidepoint(event.pos):
+            return True
+
+    def run(self):
+        while True:
+            for event in pg.event.get():
+                self.screen.fill((177, 156, 217))
+                if self.button_with_text('Начать',
+                                         self.screen.get_width() // 2, self.screen.get_height() * 7 / 24, event):
+                    self.manager.clock.tick(0.8)
+                    self.manager.run()
+
+                if self.button_with_text('Таблица лидеров',
+                                         self.screen.get_width() // 2, self.screen.get_height() * 11 / 24, event):
+                    self.leaderboard.run()
+                if self.button_with_text('Выход',
+                                         self.screen.get_width() // 2, self.screen.get_height() * 15 / 24, event):
+                    pg.quit()
+                    sys.exit()
+                pg.display.flip()
+
+
+class LeaderBoard:
+    def __init__(self, screen):
+        self.screen = screen
+        self.alive = False
+        self.score_display: pg.Surface
+        self.font = pg.font.SysFont('ariel', 40)
+        self.score_dict = {}
+
+    def load_scores(self):
+        self.score_dict = yaml.load('Leaderboard', Loader=yaml.FullLoader)
+
+    def update_scores(self):
+        yaml.dump(self.score_dict, 'Leaderboard', sort_values=True)
+
+    def display_scores(self):
+        for i, key, value in enumerate(self.score_dict.items()):
+            self.score_display = self.font.render(str(i) + '. ' + key + ' ' + str(value), True, (171, 215, 235))
+            self.screen.blit(self.score_display, (0, i * self.score_display.get_height() + i * 10 + 20))
+        self.screen.flip()
+
+    def run(self):
+        self.alive = True
+        while self.alive:
+            self.update_scores()
+            self.display_scores()
 
 
 class Ball:
@@ -52,10 +121,6 @@ class Ball:
         vel_par = vel - vel_norm
         ans = -vel_norm * coef_norm + vel_par * coef_par
         self.vel = ans.astype(np.int).tolist()
-
-
-class Table:
-    pass
 
 
 class Gun:
@@ -141,17 +206,15 @@ class Target:
 
 
 class Manager:
-    def __init__(self):
+    def __init__(self, screen):
         self.font = pg.font.SysFont('Comic Sans MS', 30)
-        self.screen = pg.display.set_mode(SCREEN_SIZE)
         self.text = ''
         self.clock = pg.time.Clock()
         self.round_done = False
-
+        self.screen = screen
         self.FPS = 30
         self.number_of_targets = 1
         self.gun = Gun(screen=self.screen)
-        self.table = Table()
         self.balls = []
         self.dead_balls = []
         self.targets = []
@@ -230,6 +293,7 @@ class Manager:
             pg.display.flip()
 
     def run(self):
+        pg.event.clear()
         self.round()
         self.end_round_card()
         self.targets = []
@@ -237,6 +301,5 @@ class Manager:
         self.run()
 
 
-manager = Manager()
-
-manager.run()
+mainmenu = MainMenu()
+mainmenu.run()
