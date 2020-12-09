@@ -71,26 +71,18 @@ class LeaderBoard:
 
     def update_scores(self):
         #  TODO Fix the cycle
-        for i in range(len(self.score_list)):
-            print(i)
-            for k in range(len(self.score_list)):
-                print(k, self.score_list)
-                try:
-                    if k != i and self.score_list[i][0] == self.score_list[k][0]:
-                        self.score_list[i] = self.score_list[i][0], max(self.score_list[i][1], self.score_list[k][1])
-                        self.score_list.pop(k)
-                except:
-                    pass
-        for i in range(len(self.score_list)):
-            print(i)
-            for k in range(len(self.score_list)):
-                print(k, self.score_list)
-                try:
-                    if k != i and self.score_list[i][0] == self.score_list[k][0]:
-                        self.score_list[i] = self.score_list[i][0], max(self.score_list[i][1], self.score_list[k][1])
-                        self.score_list.pop(k)
-                except:
-                    pass
+        for p in range(2):
+            for i in range(len(self.score_list)):
+                print(i)
+                for k in range(len(self.score_list)):
+                    print(k, self.score_list)
+                    try:
+                        if k != i and self.score_list[i][0] == self.score_list[k][0]:
+                            self.score_list[i] = self.score_list[i][0], max(self.score_list[i][1],
+                                                                            self.score_list[k][1])
+                            self.score_list.pop(k)
+                    except:
+                        pass
         self.score_list.sort(key=lambda tup: tup[1], reverse=True)
         while len(self.score_list) > 11:
             self.score_list.pop(11)
