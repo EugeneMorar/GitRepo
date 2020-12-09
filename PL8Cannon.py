@@ -14,12 +14,15 @@ pg.font.init()
 
 all_sprites = pg.sprite.Group()
 
+
 class MainMenu:
     def __init__(self):
         self.screen = pg.display.set_mode(SCREEN_SIZE)
-        self.leaderboard = LeaderBoard(self.screen)
+
         self.manager = Manager(self.screen)
+
         self.font = pg.font.SysFont('ariel', 100)
+
         self.margin = 20
 
     def button_with_text(self, text, x, y, event=None):
@@ -28,7 +31,7 @@ class MainMenu:
                              y - text.get_height() // 2 - self.margin),
                             (text.get_width() + 2 * self.margin,
                              text.get_height() + 2 * self.margin))
-        #  pg.draw.rect(self.screen, (254, 111, 94), text_rect)
+        # pg.draw.rect(self.screen, (254, 111, 94), text_rect)
         self.screen.blit(text, (x - text.get_width() // 2,
                                 y - text.get_height() // 2))
         if event is not None:
@@ -41,11 +44,11 @@ class MainMenu:
                 self.screen.fill((22, 105, 122))
                 if self.button_with_text('Начать',
                                          self.screen.get_width() // 2, self.screen.get_height() * 7 / 24, event):
-                    self.manager.clock.tick(0.7)
+                    self.manager.clock.tick(1)
                     self.manager.run()
                 if self.button_with_text('Таблица лидеров',
                                          self.screen.get_width() // 2, self.screen.get_height() * 11 / 24, event):
-                    self.leaderboard.run()
+                    LeaderBoard(self.screen).run()
                 if self.button_with_text('Выход',
                                          self.screen.get_width() // 2, self.screen.get_height() * 15 / 24, event):
                     pg.quit()
@@ -56,59 +59,112 @@ class MainMenu:
 class LeaderBoard:
     def __init__(self, screen):
         self.screen = screen
-        self.alive = False
+        self.alive = True
         self.score_display: pg.Surface
-        self.font = pg.font.SysFont('ariel', 40)
-        self.score_dict = {}
+        self.font = pg.font.SysFont('ariel', 100)
+        self.score_list = [('Drew', 14) for i in range(15)]
 
     def load_scores(self):
-        self.score_dict = yaml.load('Leaderboard', Loader=yaml.FullLoader)
+        with open('Leaderboard', 'r') as f:
+            self.score_list.extend(yaml.load(f, Loader=yaml.FullLoader))
+        print(self.score_list)
 
     def update_scores(self):
-        yaml.dump(self.score_dict, 'Leaderboard', sort_values=True)
+        #  TODO Fix the cycle
+        for i in range(len(self.score_list)):
+            print(i)
+            for k in range(len(self.score_list)):
+                print(k, self.score_list)
+                try:
+                    if k != i and self.score_list[i][0] == self.score_list[k][0]:
+                        self.score_list[i] = self.score_list[i][0], max(self.score_list[i][1], self.score_list[k][1])
+                        self.score_list.pop(k)
+                except:
+                    pass
+        for i in range(len(self.score_list)):
+            print(i)
+            for k in range(len(self.score_list)):
+                print(k, self.score_list)
+                try:
+                    if k != i and self.score_list[i][0] == self.score_list[k][0]:
+                        self.score_list[i] = self.score_list[i][0], max(self.score_list[i][1], self.score_list[k][1])
+                        self.score_list.pop(k)
+                except:
+                    pass
+        self.score_list.sort(key=lambda tup: tup[1], reverse=True)
+        while len(self.score_list) > 11:
+            self.score_list.pop(11)
+        print(self.score_list)
+        with open('Leaderboard', 'w') as f:
+            yaml.dump(self.score_list, f)
+        print(self.score_list)
 
     def display_scores(self):
-        for i, key, value in enumerate(self.score_dict.items()):
-            self.score_display = self.font.render(str(i) + '. ' + key + ' ' + str(value), True, (171, 215, 235))
-            self.screen.blit(self.score_display, (0, i * self.score_display.get_height() + i * 10 + 20))
-        self.screen.flip()
+        self.screen.fill((0, 0, 0))
+        for i, (key, value) in enumerate(self.score_list):
+            score_display = self.font.render(str(i + 1) + '. ' + key + ' ' + str(value), True, (171, 215, 235))
+            self.screen.blit(score_display, (self.screen.get_width() // 12,
+                                             i * score_display.get_height() + i * 10 + 20))
+        pg.display.flip()
 
     def run(self):
-        self.alive = True
+        self.load_scores()
+        self.update_scores()
+        self.display_scores()
         while self.alive:
-            self.update_scores()
-            self.display_scores()
+            for event in pg.event.get():
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_ESCAPE:
+                        pg.quit()
+                        sys.exit()
+                if event.type == pg.QUIT:
+                    pg.quit()
+                    sys.exit()
 
 
 class Ball(pg.sprite.Sprite):
     def __init__(self, screen, FPS, coord=[0, 0], vel=[0, 0], color=None):
         pg.sprite.Sprite.__init__(self)
+
         self.image = pg.image.load("Resources/Shell.png").convert()
+
         self.rect = self.image.get_rect()
+
         self.image.set_colorkey((0, 0, 0))
+
         self.FPS = FPS
+
         self.screen = screen
+
         if color is None:
             color = (randint(0, 255), randint(0, 255), randint(0, 255))
+
         self.color = color
+
         self.coord = coord.copy()
+
         self.vel = vel.copy()
+
         self.is_alive = True
 
     def draw(self):
-        self.screen.blit(self.image, (self.coord[0] - self.rect.w // 2, self.coord[1] - self.rect.h))
+        self.screen.blit(self.image, (self.coord[0] - self.rect.w // 2, self.coord[1] - self.rect.h // 2))
 
     def move(self, t_step=1., g=5.):
         t_step /= self.FPS // 30
         self.vel[1] += int(g * t_step)
         for i in range(2):
             self.coord[i] += int(self.vel[i] * t_step)
-        if self.vel[0] ** 2 + self.vel[1] ** 2 < 1 and self.coord[1] >= self.screen.get_height() - self.r:
+        if self.coord[1] > self.screen.get_height() or \
+                self.coord[0] > self.screen.get_width() * 25 / 24 or \
+                self.coord[0] < -1 * self.screen.get_width() * 1 / 24:
             self.is_alive = False
+        self.rect = pg.Rect(self.coord[0] - self.rect.w // 2, self.coord[1] - self.rect.h // 2,
+                            self.rect.w, self.rect.h)
 
 
 class Gun:
-    def __init__(self, screen, area, coord=[30, SCREEN_SIZE[1] // 2],
+    def __init__(self, screen, area, coord=[30, SCREEN_SIZE[1] * 5 // 6],
                  min_pow=20, max_pow=100, FPS=30):
         self.area = area
         self.screen = screen
@@ -140,23 +196,23 @@ class Gun:
         self.power = self.min_pow
 
     def move_up(self):
-        if self.coord[1] < self.area.y + 2*self.step:
-            self.coord[1] = self.area.y + 2*self.step
+        if self.coord[1] < self.area.y + 2 * self.step:
+            self.coord[1] = self.area.y + 2 * self.step
         self.coord[1] -= self.step
 
     def move_down(self):
-        if self.coord[1] > self.area.y + self.area.h - 2*self.step:
-            self.coord[1] = self.area.y + self.area.h - 2*self.step
+        if self.coord[1] > self.area.y + self.area.h - 2 * self.step:
+            self.coord[1] = self.area.y + self.area.h - 2 * self.step
         self.coord[1] += self.step
 
     def move_right(self):
-        if self.coord[0] > self.area.x + self.area.w - 2*self.step:
-            self.coord[0] = self.area.x + self.area.w - 2*self.step
+        if self.coord[0] > self.area.x + self.area.w - 2 * self.step:
+            self.coord[0] = self.area.x + self.area.w - 2 * self.step
         self.coord[0] += self.step
 
     def move_left(self):
-        if self.coord[0] < self.area.x + 2*self.step:
-            self.coord[0] = self.area.x + 2*self.step
+        if self.coord[0] < self.area.x + 2 * self.step:
+            self.coord[0] = self.area.x + 2 * self.step
         self.coord[0] -= self.step
 
     def set_angle(self, mouse_pos):
@@ -193,7 +249,7 @@ class Target(pg.sprite.Sprite):
         self.image.set_colorkey((0, 0, 0))
         self.vel[0] = randint(3, 8)
         self.amp = randint(0, min(abs(self.coord[1] - self.area.h), abs(self.coord[1] - self.area.y)) // 2)
-        self.curve = randint(10, 100)
+        self.curve = randint(10, 50)
 
     def draw(self):
         self.screen.blit(self.image, (self.coord[0] - self.rect.w // 2, self.coord[1] - self.rect.h // 2))
@@ -205,7 +261,9 @@ class Target(pg.sprite.Sprite):
     def move(self):
         self.coord[0] += self.vel[0]
         self.pattern()
-        self.rect = pg.Rect.move(self.rect, self.coord[0] - self.rect.w // 2, self.coord[1] - self.rect.h // 2)
+        self.rect = pg.Rect(self.coord[0] - self.rect.w // 2,
+                            self.coord[1] - self.rect.h // 2,
+                            self.rect.w, self.rect.h)
 
         if self.coord[0] > self.screen.get_width() * 27 / 24:
             self.vel[0] = -1 * self.vel[0]
@@ -216,6 +274,10 @@ class Target(pg.sprite.Sprite):
         """
         Попадание шарика в цель.
         """
+        print('шар', self.rect, self.coord)
+        print('цель', obj.rect)
+        print('Дист', (self.coord[0] - self.rect.w // 2 - obj.coord[0] + obj.rect.w // 2) ** 2 +
+              (self.coord[1] - self.rect.h // 2 - obj.coord[1] + obj.rect.h // 2) ** 2)
         if self.rect.colliderect(obj.rect):
             self.points += points
             return True
@@ -249,7 +311,6 @@ class Projectile(pg.sprite.Sprite):
 
     def is_hit(self):
         pass
-
 
 
 class Manager:
@@ -316,6 +377,10 @@ class Manager:
 
     def handle_events(self, events):
         for event in events:
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    pg.quit()
+                    sys.exit()
             if event.type == pg.QUIT:
                 pg.quit()
                 sys.exit()
