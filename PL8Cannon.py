@@ -140,7 +140,7 @@ class MainMenu:
                 self.screen.fill((22, 105, 122))
                 if self.button_with_text('Начать',
                                          self.screen.get_width() // 2, self.screen.get_height() * 7 / 24, event) and \
-                    self.username != '':
+                        self.username != '':
                     self.manager.clock.tick(1)
                     self.score = self.manager.run()
                 if self.button_with_text('Таблица лидеров',
@@ -411,31 +411,21 @@ class Target(pg.sprite.Sprite):
     """
     Класс целей
     """
+
     def __init__(self, screen, clock, area, FPS, coord=[0, 0]):
         pg.sprite.Sprite.__init__(self)
         self.image = pg.image.load("Resources/Aerial_Target.png").convert()
-
         self.area = area  # area - Rect, в котором допустимо движение цели
-
         self.screen = screen
-
         self.FPS = FPS
-
         self.clock = clock
         self.life = 5
-
         self.coord = coord.copy()
-
         self.start_coord = coord.copy()
-
         self.vel = [0, 0]
-
         self.time_alive = randint(0, 100)
-
         self.rect = self.image.get_rect()
-
         self.image.set_colorkey((0, 0, 0))
-
         self.vel[0] = randint(3, 8)
 
         # Амплитуда движения цели по оси y
@@ -491,12 +481,55 @@ class Target(pg.sprite.Sprite):
             return None
 
 
-class Shell(pg.sprite.Sprite):
+class Plane(Target):
+    def __init__(self, screen, clock, area, FPS, coord=[0, 0]):
+        super(Plane, self).__init__(screen, clock, area, FPS, coord)
+        pg.sprite.Sprite.__init__(self)
+        self.image = pg.image.load("Resources/Plane_right.png").convert()
+        self.image = pg.transform.scale(self.image, (int(self.image.get_width() * 3),
+                                                     int(self.image.get_height() * 3)))
+        self.image.set_colorkey((0, 0, 0))
+        self.vel[0] = 3 * self.vel[0]
+        self.life = 1
+        self.coord[0] = 0
+
+    def pattern(self):
+        self.coord[1] = self.start_coord[1]
+
+    def move(self):
+        self.coord[0] += self.vel[0]
+        self.pattern()
+
+        # Обновляет положение Rect объекта
+        self.rect = pg.Rect(self.coord[0] - self.rect.w // 2,
+                            self.coord[1] - self.rect.h // 2,
+                            self.rect.w, self.rect.h)
+
+        # Проверяет на столкновение с границами экрана
+        if self.coord[0] > self.screen.get_width() or \
+                self.coord[0] < 0:
+            self.life = 0
+
+        self.time_alive += 1
+
+    def shell_out(self):
+        """
+        Возвращает снаряд цели на её координате каждые 2 секунды
+        return: bool
+        """
+        if self.time_alive % (self.FPS // 10) == 0 and self.coord[0] < self.screen.get_width() * 2 // 3:
+            return Shell(self.screen, self.FPS, self.coord)
+        else:
+            return None
+
+
+class Shell(Ball):
     """
     Класс снаряда цели
     """
 
     def __init__(self, screen, FPS, coord=[0, 0], vel=[0, 0]):
+        super(Shell, self).__init__(screen, FPS)
         pg.sprite.Sprite.__init__(self)
 
         self.image = pg.image.load("Resources/Projectile.png").convert()
@@ -514,21 +547,6 @@ class Shell(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
 
         self.alive = True
-
-    def draw(self):
-        self.screen.blit(self.image, (self.coord[0] - self.rect.w // 2, self.coord[1] - self.rect.h // 2))
-
-    def move(self, t_step=1., g=5.):
-        t_step /= self.FPS // 30
-        self.vel[1] += int(g * t_step)
-        for i in range(2):
-            self.coord[i] += int(self.vel[i] * t_step)
-        if self.coord[1] > self.screen.get_height() or \
-                self.coord[0] > self.screen.get_width() * 25 / 24 or \
-                self.coord[0] < -1 * self.screen.get_width() * 1 / 24:
-            self.alive = False
-        self.rect = pg.Rect(self.coord[0] - self.rect.w // 2, self.coord[1] - self.rect.h // 2,
-                            self.rect.w, self.rect.h)
 
     def has_hit(self, obj):
         """
@@ -555,6 +573,8 @@ class Manager:
 
         self.round_number = 1
 
+        self.round_time = 0
+
         self.score = 0
 
         self.FPS = 60
@@ -570,6 +590,8 @@ class Manager:
         self.text = ''
         self.font = pg.font.SysFont('Comic Sans MS', 30)
         self.health = self.font.render('', True, (0, 0, 0))
+        self.bomber_text = self.font.render('INCOMING',
+                                            True, BLACK)
 
         self.balls = []
         self.dead_balls = []
@@ -616,6 +638,16 @@ class Manager:
 
         # Отрисовка хп
         self.screen.blit(self.health, (0, 0))
+
+        # Отрисовка предупреждения
+        if (self.round_time / self.FPS + 1) % (self.round_number * 10) > 7:
+            pg.draw.rect(self.screen, (255, 100, 100),
+                         pg.Rect((self.screen.get_width() - self.bomber_text.get_width() - 5,
+                                  self.screen.get_height() // 40),
+                                 (self.bomber_text.get_width(),
+                                  self.bomber_text.get_height())))
+            self.screen.blit(self.bomber_text, (self.screen.get_width() - self.bomber_text.get_width() - 5,
+                                                self.screen.get_height() // 40))
 
         # Отрисовка снарядов пушки
         for ball in self.balls:
@@ -666,6 +698,13 @@ class Manager:
             self.round_done = True
             self.game_over = True
 
+        if (self.round_time / self.FPS + 1) % (self.round_number * 10) == 0:
+            self.targets.append((Plane(screen=self.screen,
+                                       clock=self.clock,
+                                       coord=[0, self.sky.h // 4],
+                                       FPS=self.FPS,
+                                       area=self.sky)))
+
     def targets_attack(self):
         """
         Инициирует снаряды целей
@@ -707,8 +746,6 @@ class Manager:
 
             # Преобразование здоровья целей и пушки в pygame.Surface
             health_text = 'Здоровье пушки: ' + str(self.gun.life)
-            for i, target in enumerate(self.targets):
-                health_text += ', ' + 'Здоровье цели ' + str(i) + ': ' + str(target.life)
             self.health = self.font.render(health_text, True, (255, 0, 0))
 
         # Смена угла выстрела пушки
@@ -722,6 +759,7 @@ class Manager:
 
     def round(self):
         self.round_done = False
+        self.round_time = 0
         self.balls = []
         self.dead_balls = []
         self.init_targets()
@@ -733,6 +771,7 @@ class Manager:
             self.check_alive()
             self.handle_events(events=pg.event.get())
             self.clock.tick(self.FPS)
+            self.round_time += 1
             pg.display.flip()
         self.round_number += 1
 
