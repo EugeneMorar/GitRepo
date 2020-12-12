@@ -131,13 +131,21 @@ class MainMenu:
             if event.type == pg.MOUSEBUTTONDOWN and text_rect.collidepoint(event.pos):
                 return True
 
+    def draw(self):
+        self.screen.fill((22, 105, 122))
+        self.button_with_text('Выход', self.screen.get_width() // 2, self.screen.get_height() * 15 / 24)
+        self.button_with_text('Таблица лидеров', self.screen.get_width() // 2, self.screen.get_height() * 11 / 24)
+        self.button_with_text('Начать', self.screen.get_width() // 2, self.screen.get_height() * 7 / 24)
+
     def run(self):
         while True:
+            self.draw()
+            self.input_name.draw()
+
             if self.input_name.name_recorded:
                 self.username = self.input_name.username
 
             for event in pg.event.get():
-                self.screen.fill((22, 105, 122))
                 if self.button_with_text('Начать',
                                          self.screen.get_width() // 2, self.screen.get_height() * 7 / 24, event) and \
                         self.username != '':
@@ -172,15 +180,18 @@ class LeaderBoard:
         Переписывает все строчки из Leaderboard.yaml в self.score_list
         return: None
         """
-        with open('Leaderboard', 'r') as f:
-            self.score_list.extend(yaml.load(f, Loader=yaml.FullLoader))
+        try:
+            with open('Leaderboard', 'r') as f:
+                self.score_list.extend(yaml.load(f, Loader=yaml.FullLoader))
+        except FileNotFoundError:
+            pass
 
-    def update_scores(self, username: str, score: int):
+    def update_scores(self, username='', score=0):
         """
         Сортирует список очков, добавляет новый элемент (username, score) и обновляет Leaderboard.yaml
         return: None
         """
-        if username != '':
+        if username != '' and score != 0:
             self.score_list.append((str(username), score))
         for p in range(2):
             for i in range(len(self.score_list)):
@@ -220,6 +231,10 @@ class LeaderBoard:
         self.display_scores()
         while self.alive:
             for event in pg.event.get():
+                if mainmenu.button_with_text('Выход', self.screen.get_width() * 10 // 12,
+                                             self.screen.get_height() // 2, event):
+                    self.alive = False
+                pg.display.flip()
                 if event.type == pg.KEYDOWN:
                     if event.key == pg.K_ESCAPE:
                         pg.quit()
